@@ -5,13 +5,6 @@ library(tidyr)
 library(patchwork)
 
 
-
-x <- seq.Date(
-  from = "2021-07-01",
-  to = 
-)
-
-
 tp_baseline <- 1.5
 
 prop_under_strict <- 0.49
@@ -132,6 +125,15 @@ dat <- tibble(
 
 dat
 
+# colour1 <- "darkgoldenrod"
+colour1 <- "goldenrod1"
+colour2 <- "darkorchid"
+
+# colour1 <- "dodgerblue2"
+# colour2 <- "firebrick2"
+
+linesize <- 1.5
+
 plot_1 <- dat %>%
   ggplot() +
   geom_line(
@@ -140,7 +142,8 @@ plot_1 <- dat %>%
       y = phsm,
       group = block
     ),
-    colour = "darkgoldenrod"
+    colour = colour1,
+    size = linesize
   ) +
   facet_grid(
     block ~ .,
@@ -166,7 +169,8 @@ plot_2 <- dat %>%
       x = date,
       y = cases
     ),
-    colour = "darkorchid"
+    colour = colour2,
+    size = linesize
   ) +
   facet_grid(
     block ~ .#,
@@ -215,7 +219,8 @@ plot_3 <- dat %>%
       y = phsm,
       group = block
     ),
-    colour = "darkgoldenrod"
+    colour = colour1,
+    size = linesize
   ) +
   facet_grid(
     . ~ block,
@@ -241,7 +246,8 @@ plot_4 <- dat %>%
       x = date,
       y = cases
     ),
-    colour = "darkorchid"
+    colour = colour2,
+    size = linesize
   ) +
   facet_grid(
     . ~ block
