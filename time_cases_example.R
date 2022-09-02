@@ -126,7 +126,9 @@ dat <- tibble(
 dat
 
 # colour1 <- "darkgoldenrod"
-colour1 <- "goldenrod1"
+# colour1 <- "goldenrod1"
+# colour1 <- "mediumvioletred"
+colour1 <- "seagreen"
 colour2 <- "darkorchid"
 
 # colour1 <- "dodgerblue2"
@@ -231,10 +233,14 @@ plot_3 <- dat %>%
     strip.text.y = element_blank(),
     strip.placement = "outside",
     axis.text.x = element_blank(),
-    axis.title.x = element_blank()
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(
+      angle = 0,
+      vjust = 0.5
+    )
   ) +
   labs(
-    y = "PHSM bundle"
+    y = "PHSM\nbundle"
   )
 
 plot_3
@@ -260,7 +266,11 @@ plot_4 <- dat %>%
   theme(
     strip.text = element_blank(),
     strip.placement = "outside",
-    axis.text = element_blank()
+    axis.text = element_blank(),
+    axis.title.y = element_text(
+      angle = 0,
+      vjust = 0.5
+    )
   ) +
   labs(
     x = "Time",
