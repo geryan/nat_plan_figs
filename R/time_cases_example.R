@@ -6,11 +6,13 @@ library(patchwork)
 
 
 
-# input TP and proportion under increased restructions, here based on 70% vaccination
-tp_baseline <- 1.5
-prop_under_strict <- 0.49
+# input TP and proportion under increased restructions
 
-# 80%, reversion to baseline phsm, all adults allocation, partial TTIQ
+# based on 70% vaccination
+# tp_baseline <- 1.5
+# prop_under_strict <- 0.49
+
+# or 80% vaccination, reversion to baseline phsm, all adults allocation, partial TTIQ
 tp_baseline <- 1.3
 prop_under_strict <- 0.31
 
