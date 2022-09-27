@@ -5,19 +5,21 @@ library(tidyr)
 library(patchwork)
 
 
-tp_baseline <- 1.5
 
+# input TP and proportion under increased restructions, here based on 70% vaccination
+tp_baseline <- 1.5
 prop_under_strict <- 0.49
 
+# calculate TP under strict restrictions
 tp_strict <- 10^(((prop_under_strict - 1)*log10(tp_baseline))/prop_under_strict)
-
 tp_strict
 # 0.65
 
+# initial cases and generation interval
 n0 <- 1000
-
 generation_interval <- 5
 
+# calculate daily growth rates under restrictions
 gr_baseline <- tp_baseline^(1/generation_interval)
 gr_strict <- tp_strict^(1/generation_interval)
 
@@ -25,105 +27,105 @@ gr_baseline
 gr_strict
 
 
-short_interval <- 7
+# compute the number of cases at time t (can be non-integer) since the start of
+# the timeseries, given the switching interval, the growth rates under baseline
+# and strict, and the initial number of cases, and assuming that the timeseries
+# starts with a full period of either strict or baseline restrictions
+# can also return the PHSM regime associated with each time t
+cases <- function(
+  t,
+  gr_baseline,
+  gr_strict,
+  proportion_strict = 0.5,
+  cycle = 14,
+  n0 = 1000,
+  strict_first = FALSE,
+  return_phsm = FALSE
+) {
+  
+  strict_interval <- cycle * proportion_strict
+  baseline_interval <- cycle * (1 - proportion_strict)
+  
+  # how many complete cycles of baseline and strict so far
+  whole_cycles <- t %/% cycle
+  
+  # calculate the remainder in days
+  # remainder <- t - (whole_cycles * cycle)
+  remainder <- t %% cycle
+  
+  # how many days of baseline and strict, in
+  # this remainder period
+  if(strict_first) {
+    extra_strict_days <- pmin(remainder, strict_interval)
+    extra_baseline_days <- remainder - extra_strict_days
+  } else {
+    extra_baseline_days <- pmin(remainder, baseline_interval)
+    extra_strict_days <- remainder - extra_baseline_days
+  }
+  
+  # how many days of each
+  baseline_days <- whole_cycles * baseline_interval + extra_baseline_days
+  strict_days <- whole_cycles * strict_interval + extra_strict_days
+  
+  # calculate cases by this point
+  ncases <- n0 * gr_baseline ^ baseline_days * gr_strict ^ strict_days
+  
+  if(return_phsm){
+    
+    phsm <- ifelse(
+      extra_baseline_days > lag(extra_baseline_days),
+      "Baseline",
+      "Strict"
+    ) %>%
+      as.factor()
+    
+    phsm[1] <- phsm[2]
+    
+    return(tibble(phsm, cases = ncases))
+    
+  } else {
+    return(cases)
+  }
+  
+}
 
-long_interval <- 28
+t <- seq(0, 100, length.out = 1000)
 
-total_days <- 200
-
-dates <- 0:total_days
-
-short_timeline <- c(
-  "Baseline",
-  rep(
-    c(
-      rep(
-        "Baseline",
-        times = short_interval
-      ),
-      rep(
-        "Strict",
-        times = short_interval
-      )
-    ),
-    length.out = total_days
-  )
+n_cases_long <- cases(
+  t,
+  gr_baseline = gr_baseline,
+  gr_strict = gr_strict,
+  proportion_strict = prop_under_strict,
+  cycle = 50,
+  n0 = 1000,
+  strict_first = TRUE,
+  return_phsm = TRUE
 )
 
-table(short_timeline)
-
-
-long_timeline <- c(
-  "Baseline",
-  rep(
-    c(
-      rep(
-        "Baseline",
-        times = long_interval
-      ),
-      rep(
-        "Strict",
-        times = long_interval
-      )
-    ),
-    length.out = total_days + 10
-  )[11:210] # modify so meets the correct proportion of time under each PHSM per prop_under_strict
+n_cases_short <- cases(
+  t,
+  gr_baseline = gr_baseline,
+  gr_strict = gr_strict,
+  proportion_strict = prop_under_strict,
+  cycle = 20,
+  n0 = 1000,
+  strict_first = TRUE,
+  return_phsm = TRUE
 )
 
-table(long_timeline)
 
-initial_cases <- 1000
-
-dat <- tibble(
-  date = dates,
-  short = short_timeline,
-  long = long_timeline
-) %>%
-  pivot_longer(
-    cols = -date,
-    names_to = "block",
-    values_to = "phsm"
-  ) %>%
-  mutate(
-    growth_rate = if_else(
-      phsm == "Baseline",
-      gr_baseline,
-      gr_strict
+dat <- bind_rows(
+  n_cases_long %>% 
+    mutate(
+      intervals = "Long\nIntervals",
+      date = t
     ),
-    growth_rate = case_when(
-      date == 0 ~ 1, # this so that the acumulate function below keeps the cases correct on day 0
-      phsm == "Baseline" ~ gr_baseline,
-      TRUE ~ gr_strict
+  n_cases_short %>%
+    mutate(
+      intervals = "Short\nIntervals",
+      date = t
     )
-  ) %>%
-  arrange(
-    block,
-    date
-  ) %>%
-  group_by(block) %>%
-  mutate(
-    cases = round(
-      initial_cases * 
-        accumulate(
-        .x = growth_rate,
-        .f = ~ .x * .y
-      )
-    )
-  ) %>%
-  ungroup %>%
-  mutate(
-    phsm = ordered(
-      phsm,
-      levels = c("Baseline", "Strict")
-    ),
-    block = if_else(
-      block == "long",
-      "Long\nperiods",
-      "Short\nperiods"
-    )
-  )
-
-dat
+)
 
 # colour1 <- "darkgoldenrod"
 # colour1 <- "goldenrod1"
@@ -142,13 +144,13 @@ plot_1 <- dat %>%
     aes(
       x = date,
       y = phsm,
-      group = block
+      group = intervals
     ),
     colour = colour1,
     size = linesize
   ) +
   facet_grid(
-    block ~ .,
+    intervals ~ .,
     #switch = "y"
   ) +
   theme_minimal() +
@@ -175,8 +177,9 @@ plot_2 <- dat %>%
     size = linesize
   ) +
   facet_grid(
-    block ~ .#,
+    intervals ~ .#,
     #switch = "y"
+    #scales = "free"
   ) +
   geom_hline(
     yintercept = initial_cases,
@@ -191,7 +194,8 @@ plot_2 <- dat %>%
   labs(
     x = "Time",
     y = "Cases"
-  )
+  )# +
+  #scale_y_log10()
 
 
 plot_2
@@ -219,13 +223,13 @@ plot_3 <- dat %>%
     aes(
       x = date,
       y = phsm,
-      group = block
+      group = intervals
     ),
     colour = colour1,
     size = linesize
   ) +
   facet_grid(
-    . ~ block,
+    . ~ intervals,
     #switch = "y"
   ) +
   theme_minimal() +
@@ -256,7 +260,7 @@ plot_4 <- dat %>%
     size = linesize
   ) +
   facet_grid(
-    . ~ block
+    . ~ intervals
   ) +
   geom_hline(
     yintercept = initial_cases,
@@ -294,3 +298,5 @@ png(
 )
 plot_34
 dev.off()
+
+
