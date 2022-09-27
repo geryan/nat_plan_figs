@@ -10,6 +10,10 @@ library(patchwork)
 tp_baseline <- 1.5
 prop_under_strict <- 0.49
 
+# 80%, reversion to baseline phsm, all adults allocation, partial TTIQ
+tp_baseline <- 1.3
+prop_under_strict <- 0.31
+
 # calculate TP under strict restrictions
 tp_strict <- 10^(((prop_under_strict - 1)*log10(tp_baseline))/prop_under_strict)
 tp_strict
@@ -89,7 +93,7 @@ cases <- function(
   
 }
 
-t <- seq(0, 100, length.out = 1000)
+t <- seq(0, 150, length.out = 1000)
 
 n_cases_long <- cases(
   t,
@@ -107,7 +111,7 @@ n_cases_short <- cases(
   gr_baseline = gr_baseline,
   gr_strict = gr_strict,
   proportion_strict = prop_under_strict,
-  cycle = 20,
+  cycle = 15,
   n0 = 1000,
   strict_first = TRUE,
   return_phsm = TRUE
@@ -189,13 +193,17 @@ plot_2 <- dat %>%
   theme(
     strip.text.y = element_text(angle = 0),
     strip.placement = "outside",
-    axis.text = element_blank()
+    axis.text.x = element_blank()
   ) +
   labs(
     x = "Time",
     y = "Cases"
-  )# +
-  #scale_y_log10()
+  ) +
+  scale_y_continuous(
+    breaks = seq(0, 1000, 200),
+    labels = c(0, rep("", 4), expression("N"[0])),
+    limits = c(0, 1000)
+  )
 
 
 plot_2
@@ -270,7 +278,7 @@ plot_4 <- dat %>%
   theme(
     strip.text = element_blank(),
     strip.placement = "outside",
-    axis.text = element_blank(),
+    axis.text.x = element_blank(),
     axis.title.y = element_text(
       angle = 0,
       vjust = 0.5
@@ -279,6 +287,11 @@ plot_4 <- dat %>%
   labs(
     x = "Time",
     y = "Cases"
+  ) +
+  scale_y_continuous(
+    breaks = seq(0, 1000, 200),
+    labels = c(0, rep("", 4), expression("N"[0])),
+    limits = c(0, 1000)
   )
 
 
